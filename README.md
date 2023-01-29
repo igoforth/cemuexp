@@ -1,6 +1,6 @@
 # C Emulation Experiments
 
-Experiments with ia32 CPU Emulation in C. A frankenstein of a repository attempting to make sense of code across the web. No sense trying to reinvent the wheel for some aspects, such as decoding bytecode.
+Experiments with ia32 CPU Emulation in C. A frankenstein of a repository attempting to make sense of code across the web. No sense trying to reinvent the wheel for some aspects, such as decoding bytecode. The rest, such as the profiler and cpu emulator, are homemade.
 
 # Inspiration
 http://www.gtoal.com/sbt/  
