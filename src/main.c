@@ -38,6 +38,8 @@ int print(xed_decoded_inst_t* xedd, char* buffer, int offset, int line_size, xed
     xed_bool_t ok;
     ok = xed_format_context(XED_SYNTAX_INTEL, xedd, buffer, BUFLEN, 0, 0, 0);
     if (ok) {
+        // Print yellow
+        printf("\033[0;33m");
         printf("%-8d", offset + line_size);
         int i;
         for(i = 0; i < line_size; i++) {
@@ -47,8 +49,10 @@ int print(xed_decoded_inst_t* xedd, char* buffer, int offset, int line_size, xed
             printf(" ");
         }
         printf("%s\n", buffer);
+        // Reset color
+        printf("\033[0m");
         xed_decoded_inst_dump(xedd, buffer, BUFLEN);
-        printf("Details\n%s\n", buffer);
+        printf("%s\n", buffer);
     }
     else {
         printf("Error disassembling\n");
@@ -64,7 +68,7 @@ int main(int argc, char** argv) {
     xed_bool_t ok;
     xed_machine_mode_enum_t mmode;
     xed_address_width_enum_t stack_addr_width;
-    profiler_result_t result;
+    profiler_result_t* result = profiler_init_profile();
 
     // Assembly
     // square:
@@ -111,7 +115,7 @@ int main(int argc, char** argv) {
         }
 
         // Profile instruction
-        if (profiler_process_instruction(&result, &xedd)) {
+        if (profiler_process_instruction(result, &xedd)) {
             return 1;
         }
 
@@ -126,9 +130,13 @@ int main(int argc, char** argv) {
         // Increment offset
         offset += length;
     }
+    printf("\n");
 
     // Print profiling results
-    profiler_print_result(&result);
+    profiler_print_result(result);
+
+    // Free malloc'd memory
+    profiler_free_profile(result);
 
     return 0;
     (void) argv; (void)argc;

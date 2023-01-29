@@ -20,6 +20,8 @@ typedef struct profiler_result_s {
     xed_int64_t unique_displacements[256];          // a list of unique memory displacements
 } profiler_result_t;
 
+profiler_result_t* profiler_init_profile();
+void profiler_free_profile(profiler_result_t *result);
 int profiler_add_register(profiler_result_t *result, xed_reg_enum_t reg);
 int profiler_add_displacement(profiler_result_t *result, xed_int64_t disp);
 int profiler_displacement_max(profiler_result_t *result);
