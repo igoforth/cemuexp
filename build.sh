@@ -13,9 +13,6 @@ rm -rf xed mbuild
 cd ../
 make
 
-
-
-# gcc src/main.c -Llib -lxed -lprofiler
-
 # gcc -c src/profiler.c -Llib -lxed
 # ar rcs lib/libprofiler.a profiler.o
+# gcc src/main.c -Llib -lxed -lprofiler
