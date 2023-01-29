@@ -1,116 +1,135 @@
-// Boilerplate that maps a memory space, writes bytecode to it, calls the LLVM decoder, and prints the instruction that would be executed.
+// -----------------------------------------
+// A program that decodes and emulates x86 instructions
+// Author: Ian Goforth
+// 
+// Main program
+// -----------------------------------------
+/// @file main.c
 
+#include "xed/xed-interface.h"
+#include "xed-examples-util.h"
+#include "profiler.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/mman.h>
-#include "../lib/LLVMX86Disassembler/X86DisassemblerDecoder.h"
 
-#define TRUE  1
-#define FALSE 0
+#ifndef FALSE
+#define FALSE (0!=0)
+#define TRUE  (0==0)
+#endif
 
-typedef int8_t bool;
+#define BUFLEN  1000
 
-int main() {
-    char *memory = mmap(NULL, 0x1000, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-    if (memory == MAP_FAILED) {
-        perror("failed to allocate memory");
-        exit(1);
+int main(int argc, char** argv);
+
+int decode(xed_decoded_inst_t* xedd, xed_uint8_t* itext, int offset, int line_size, xed_machine_mode_enum_t mmode, xed_address_width_enum_t stack_addr_width) {
+    xed_error_enum_t xed_error;
+    xed_decoded_inst_zero(xedd);
+    xed_decoded_inst_set_mode(xedd, mmode, stack_addr_width);
+    xed_error = xed_decode(xedd, &itext[offset], line_size);
+    if (xed_error != XED_ERROR_NONE) {
+        printf("Decoding error\n");
+        return 1;
     }
+    return 0;
+}
+
+int print(xed_decoded_inst_t* xedd, char* buffer, int offset, int line_size, xed_uint8_t* itext) {
+    xed_bool_t ok;
+    ok = xed_format_context(XED_SYNTAX_INTEL, xedd, buffer, BUFLEN, 0, 0, 0);
+    if (ok) {
+        printf("%-8d", offset + line_size);
+        int i;
+        for(i = 0; i < line_size; i++) {
+            printf("%02x ", itext[offset + i]);
+        }
+        for(int j = 0; j < 23 - (i * 3); j++) {
+            printf(" ");
+        }
+        printf("%s\n", buffer);
+        xed_decoded_inst_dump(xedd, buffer, BUFLEN);
+        printf("Details\n%s\n", buffer);
+    }
+    else {
+        printf("Error disassembling\n");
+        return 1;
+    }
+    return 0;
+}
+
+int main(int argc, char** argv) {
+    xed_error_enum_t xed_error;
+    xed_decoded_inst_t xedd;
+    char buffer[BUFLEN];
+    xed_bool_t ok;
+    xed_machine_mode_enum_t mmode;
+    xed_address_width_enum_t stack_addr_width;
+    profiler_result_t result;
 
     // Assembly
     // square:
-    //     push    ebp
-    //     mov     ebp, esp
-    //     mov     DWORD PTR [rbp-4], edi
-    //     mov     eax, DWORD PTR [rbp-4]
-    //     imul    eax, eax
-    //     pop     ebp
-    //     ret
+    // push   ebp
+    // mov    ebp,esp
+    // mov    eax,DWORD PTR [ebp+0x8]
+    // imul   eax,eax
+    // pop    ebp
+    // ret    
 
     // Disassembly
     // 0:  55                      push   ebp
     // 1:  89 e5                   mov    ebp,esp
-    // 3:  89 3d fc ff ff ff       mov    DWORD PTR ds:0xfffffffc,edi
-    // 9:  a1 fc ff ff ff          mov    eax,ds:0xfffffffc
-    // e:  0f af c0                imul   eax,eax
-    // 11: 5d                      pop    ebp
-    // 12: c3                      ret
+    // 3:  8b 45 08                mov    eax,DWORD PTR [ebp+0x8]
+    // 6:  0f af c0                imul   eax,eax
+    // 9:  5d                      pop    ebp
+    // a:  c3                      ret
 
     // Bytecode
-    // 5589E5893DFCFFFFFFA1FCFFFFFF0FAFC05DC3
+    // 5589E58B45080FAFC05DC3
 
-    // Write bytecode to memory
-    unsigned char bytecode[] = {
-        0x55,
-        0x89, 0xe5,
-        0x89, 0x3d, 0xfc, 0xff, 0xff, 0xff,
-        0xa1, 0xfc, 0xff, 0xff, 0xff,
-        0x0f, 0xaf, 0xc0,
-        0x5d,
-        0xc3
-    };
+    // Write bytecode to itext
+    xed_uint8_t itext[XED_MAX_INSTRUCTION_BYTES];
+    unsigned char bytecode[] = { 0x55, 0x89, 0xE5, 0x8B, 0x45, 0x08, 0x0F, 0xAF, 0xC0, 0x5D, 0xC3 };
 
     for (int i = 0; i < sizeof(bytecode); i++) {
-        memory[i] = bytecode[i];
+        itext[i] = bytecode[i];
     }
 
-    // Setup instruction
-    struct InternalInstruction *insn = malloc(sizeof(struct InternalInstruction));
+    // Set parameters
+    xed_tables_init();
+    mmode = XED_MACHINE_MODE_LEGACY_32;
+    stack_addr_width = XED_ADDRESS_WIDTH_32b;
+    int offset = 0;
+    int length = 1;
+    xed_uint_t line_size;
 
-    /*
-    * byteReader_t - Type for the byte reader that the consumer must provide to
-    *   the decoder.  Reads a single byte from the instruction's address space.
-    * @param arg     - A baton that the consumer can associate with any internal
-    *                  state that it needs.
-    * @param byte    - A pointer to a single byte in memory that should be set to
-    *                  contain the value at address.
-    * @param address - The address in the instruction's address space that should
-    *                  be read from.
-    * @return        - -1 if the byte cannot be read for any reason; 0 otherwise.
-    */
-    // typedef int (*byteReader_t)(void* arg, uint8_t* byte, uint64_t address);
+    // Main loop
+    printf("%-8s%-23s%s\n", "Offset", "Bytecode", "Disassembly");
+    while (offset != sizeof(bytecode)) {
+        // Decode instruction
+        if (decode(&xedd, itext, offset, sizeof(bytecode), mmode, stack_addr_width)) {
+            return 1;
+        }
 
-    // Setup reader
-    byteReader_t reader;
+        // Profile instruction
+        if (profiler_process_instruction(&result, &xedd)) {
+            return 1;
+        }
 
-    /*
-    * dlog_t - Type for the logging function that the consumer can provide to
-    *   get debugging output from the decoder.
-    * @param arg     - A baton that the consumer can associate with any internal
-    *                  state that it needs.
-    * @param log     - A string that contains the message.  Will be reused after
-    *                  the logger returns.
-    */
-    // typedef void (*dlog_t)(void* arg, const char *log);
+        // Get length of instruction
+        length = xed_decoded_inst_get_length(&xedd);
 
-    // Setup logger
-    dlog_t logger;
+        // Print disassembly
+        if (print(&xedd, buffer, offset, length, itext)) {
+            return 1;
+        }
 
-    /* decodeInstruction - Decode one instruction and store the decoding results in
-    *   a buffer provided by the consumer.
-    * @param insn      - The buffer to store the instruction in.  Allocated by the
-    *                    consumer.
-    * @param reader    - The byteReader_t for the bytes to be read.
-    * @param readerArg - An argument to pass to the reader for storing context
-    *                    specific to the consumer.  May be NULL.
-    * @param logger    - The dlog_t to be used in printing status messages from the
-    *                    disassembler.  May be NULL.
-    * @param loggerArg - An argument to pass to the logger for storing context
-    *                    specific to the logger.  May be NULL.
-    * @param startLoc  - The address (in the reader's address space) of the first
-    *                    byte in the instruction.
-    * @param mode      - The mode (16-bit, 32-bit, 64-bit) to decode in.
-    * @return          - Nonzero if there was an error during decode, 0 otherwise.
-    */
-    // int decodeInstruction(struct InternalInstruction* insn,
-    //                       byteReader_t reader,
-    //                       void* readerArg,
-    //                       dlog_t logger,
-    //                       void* loggerArg,
-    //                       void* miiArg,
-    //                       uint64_t startLoc,
-    //                       DisassemblerMode mode);
+        // Increment offset
+        offset += length;
+    }
 
-    // Decode instruction
-    return decodeInstruction(insn, reader, NULL, logger, NULL, NULL,(uint64_t) &memory[0], MODE_32BIT);
+    // Print profiling results
+    profiler_print_result(&result);
+
+    return 0;
+    (void) argv; (void)argc;
 }

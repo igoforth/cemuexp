@@ -11,6 +11,8 @@ https://opensource.apple.com/source/clang/clang-421.11.65/src/lib/Target/X86/Dis
 # Build
 ```bash
 ./build.sh
+OR
+gcc src/main.c -lxed -Llib
 ```
 
 # Clean
