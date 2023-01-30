@@ -9,8 +9,7 @@
 #include "xed/xed-interface.h"
 #include "xed-examples-util.h"
 #include "profiler.h"
-#include <stdio.h>
-#include <stdlib.h>
+#include "cpu.h"
 #include <sys/mman.h>
 
 #ifndef FALSE

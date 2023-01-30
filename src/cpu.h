@@ -9,6 +9,9 @@
 #ifndef CPU_H
 #define CPU_H
 
+#include "xed/xed-interface.h"
+#include "profiler.h"
+
 // Emulation: A technique to simulate software/tasks (usually through an intermediate language like C) on a host.
 // Translation: The process of converting code from one representation to another. This can include an intermediate language like unified IR, not just C or assembly.
 // Assembler/Compiler: A program that converts assembly/language to machine code.
@@ -65,5 +68,22 @@
 // EBP/BP/CH            101   C5    CD    D5    DD    E5    ED    F5    FD
 // ESI/SI/DH            110   C6    CE    D6    DE    E6    EE    F6    FE
 // EDI/DI/BH            111   C7    CF    D7    DF    E7    EF    F7    FF
+
+
+typedef struct emulator_state_s {
+    
+} emulator_state_t;
+
+// Allocates opcodes, registers, memory from the profiler result
+emulator_state_t* emulator_init(profiler_result_t* profiler_result);
+
+// Frees memory allocated by emulator_init
+void emulator_free(emulator_state_t* state);
+
+// Executes decoded instruction in emulator
+int emulator_process_instruction(emulator_state_t* state, xed_decoded_inst_t* xedd);
+
+// Prints state, including register contents and stack trace
+void emulator_print_state(emulator_state_t* state);
 
 #endif

@@ -9,13 +9,11 @@
 #ifndef PROFILER_H
 #define PROFILER_H
 
-#include <stdio.h>
-#include <stdint.h>
 #include "xed/xed-interface.h"
 
 #define UNIQUE_OPCODE_MAX XED_ICLASS_LAST
 #define UNIQUE_REGISTER_MAX XED_REG_LAST
-#define UNIQUE_DISPLACEMENT_MAX 256
+#define UNIQUE_DISPLACEMENT_MAX XED_MAX_IFORMS_PER_ICLASS
 
 typedef struct opcode_s {
     xed_iclass_enum_t iclass;
