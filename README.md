@@ -1,6 +1,6 @@
 # C Emulation Experiments
 
-Experiments with ia32 CPU Emulation in C. A frankenstein of a repository attempting to make sense of code across the web. No sense trying to reinvent the wheel for some aspects, such as decoding bytecode. The rest, such as the profiler and cpu emulator, are homemade.
+Experiments with ia32 CPU Emulation in C. A frankenstein of a repository attempting to make sense of code across the web. No sense trying to reinvent the wheel for some aspects, such as decoding bytecode. The rest, such as the profiler (and yet-to-be-implemented cpu emulator), are homemade.
 
 # Inspiration
 http://www.gtoal.com/sbt/  
@@ -15,9 +15,4 @@ OR
 gcc -c src/profiler.c -Llib -lxed
 ar rcs lib/libprofiler.a profiler.o
 gcc src/main.c -Llib -lxed -lprofiler
-```
-
-# Clean
-```bash
-./clean.sh
 ```

@@ -15,10 +15,18 @@
 
 emulator_state_t* emulator_init(profiler_result_t* profiler_result) {
     emulator_state_t* state = malloc(sizeof(emulator_state_t));
-    state->memory = malloc(MAX_MEMORY);
-    state->registers = malloc(sizeof(dispatch_register_t) * NUM_REGISTERS);
-    state->opcode_lookup_table = opcode_build_lookup_table(profiler_result, dispatch_table);
-    state->register_lookup_table = register_build_lookup_table(profiler_result, dispatch_table);
+    if (!state->memory = emulator_allocate_memory(profiler_result)) {
+        printf("Error allocating memory\n");
+        return NULL;
+    }
+    if (!state->opcode_lookup_table = opcode_build_lookup_table(profiler_result)) {
+        printf("Error building opcode lookup table\n");
+        return NULL;
+    }
+    if (!state->register_lookup_table = register_build_lookup_table(profiler_result)) {
+        printf("Error building register lookup table\n");
+        return NULL;
+    }
     return state;
 }
 
@@ -30,12 +38,28 @@ void emulator_free(emulator_state_t* state) {
     free(state);
 }
 
+// Allocate memory
+char* emulator_allocate_memory(profiler_result_t* profiler_result) {
+    unsigned int mem_size = 8 * profiler_result->total_instruction_count * profiler_displacement_max(profiler_result);
+    if (mem_size > MAX_MEMORY) {
+        printf("Memory size %d exceeds maximum memory size %d\n", mem_size, MAX_MEMORY);
+        return NULL;
+    }
+    return malloc(MAX_MEMORY);
+}
+
 int emulator_process_instruction(emulator_state_t* state, xed_decoded_inst_t* xedd) {
-    xed_uint_t opcode = xed_decoded_inst_get_iclass(xedd);
-    if(opcode >= MAX_INSTRUCTIONS) {
+    xed_iform_enum_t opcode = xed_decoded_inst_get_iform_enum(xedd);
+    if(state->opcode_lookup_table[opcode] == UINT16_MAX) {
         printf("Opcode %d not implemented");
+        return 1;
+    }
+    // Fix this to make some sort of sense
+    opcode_function_t opcode_function = opcode_dispatch_table[state->opcode_lookup_table[opcode]](xedd);
 }
 
 void emulator_print_state(emulator_state_t* state) {
-    
+    // Implement this
 }
+
+

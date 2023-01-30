@@ -71,19 +71,24 @@
 
 
 typedef struct emulator_state_s {
-    
+    uint16_t opcode_lookup_table[XED_IFORM_LAST];
+    uint16_t register_lookup_table[XED_REG_LAST];
+    char* memory;
 } emulator_state_t;
 
 // Allocates opcodes, registers, memory from the profiler result
 emulator_state_t* emulator_init(profiler_result_t* profiler_result);
 
 // Frees memory allocated by emulator_init
-void emulator_free(emulator_state_t* state);
+int emulator_free(emulator_state_t* state);
+
+// Allocate memory
+char* emulator_allocate_memory(profiler_result_t* profiler_result);
 
 // Executes decoded instruction in emulator
 int emulator_process_instruction(emulator_state_t* state, xed_decoded_inst_t* xedd);
 
 // Prints state, including register contents and stack trace
-void emulator_print_state(emulator_state_t* state);
+int emulator_print_state(emulator_state_t* state);
 
 #endif

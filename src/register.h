@@ -11,17 +11,17 @@
 
 #include "cpu.h"
 
+typedef struct dispatch_register_s {
+    xed_reg_enum_t reg;
+    register_t register_data;
+} dispatch_register_t;
+
 typedef union register_u {
     uint8_t  byte;
     uint16_t word;
     uint32_t dword;
     uint64_t qword;
 } register_t;
-
-typedef struct dispatch_register_s {
-    xed_reg_enum_t reg;
-    register_t register_data;
-} dispatch_register_t;
 
 enum Condition {
   // any value < 0 is considered no_condition
@@ -53,6 +53,6 @@ enum Condition {
   not_sign = positive
 }
 
-int* register_build_lookup_table(profiler_result_t* profiler_result, dispatch_entry_t* dispatch_table);
+uint16_t* register_build_lookup_table(profiler_result_t* profiler_result);
 
 #endif

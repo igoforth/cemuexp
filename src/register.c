@@ -8,7 +8,7 @@
 
 #include "register.h"
 
-dispatch_register_t dispatch_table[] = {
+dispatch_register_t register_dispatch_table[] = {
     {XED_REG_EAX, {.dword = 0}},
     {XED_REG_ECX, {.dword = 0}},
     {XED_REG_EDX, {.dword = 0}},
@@ -25,6 +25,17 @@ dispatch_register_t dispatch_table[] = {
     {XED_REG_STACKPOP, {.dword = 0}}
 }
 
-int* register_build_lookup_table(profiler_result_t* profiler_result, dispatch_entry_t* dispatch_table) {
-
+uint16_t* register_build_lookup_table(profiler_result_t* profiler_result) {
+    const int dispatch_table_size = sizeof(dispatch_table) / sizeof(dispatch_register_t);
+    unsigned short count = profiler_result->unique_register_count;
+    uint16_t register_lookup_table[XED_REG_LAST] = UINT16_MAX;
+    for (int i = 0; i < count; i++) {
+        xed_reg_enum_t lookup_reg = profiler_result->unique_registers[i];
+        for (int j = 0; j < dispatch_table_size; j++) {
+            if (dispatch_table[j]->reg == lookup_reg) {
+                register_lookup_table[lookup_reg] = j;
+            }
+        }
+    }
+    return register_lookup_table;
 }
